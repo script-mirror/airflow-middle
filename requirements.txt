@@ -1,0 +1,6 @@
+# Adicione aqui as dependências Python necessárias para o seu projeto Airflow
+# Exemplo:
+pandas
+requests
+git+https://github.com/raizen-energy/raizen-power-trading-libs-middle.git
+git+https://github.com/raizen-energy/trading-middle-newave.git
