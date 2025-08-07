@@ -1,11 +1,11 @@
 from airflow.decorators import dag
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
+from ...utils.sender_message import callback_whatsapp_erro_padrao
 from datetime import datetime, timedelta
 from prospec.cvu.tasks import (
     check_atualizacao,
     export_data_to_db,
     end_task,
-    enviar_whatsapp_erro,
     update_cvu_dadger_decomp,
     update_cvu_clast_newave,
 )
@@ -19,7 +19,7 @@ from prospec.cvu.tasks import (
     default_args={
         "retries": 3,
         "retry_delay": timedelta(minutes=1),
-        "on_failure_callback": enviar_whatsapp_erro,
+        "on_failure_callback": callback_whatsapp_erro_padrao,
     },
     tags=["cvu", "ccee"],
     render_template_as_native_obj=True,
@@ -50,7 +50,7 @@ dag_check_cvu = dag_check_cvu()
     default_args={
         "retries": 3,
         "retry_delay": timedelta(minutes=1),
-        "on_failure_callback": enviar_whatsapp_erro,
+        "on_failure_callback": callback_whatsapp_erro_padrao,
     },
     tags=["cvu", "ccee", "decks"],
     render_template_as_native_obj=True,

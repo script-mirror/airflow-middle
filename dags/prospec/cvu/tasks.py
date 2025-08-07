@@ -24,13 +24,6 @@ from middle.utils import setup_logger
 logger = setup_logger()
 constants = Constants()
 
-@task
-def enviar_whatsapp_erro(task_instance: TaskInstance = None):
-    dag_id = task_instance.dag_id
-    task_id = task_instance.task_id
-    enviar_erro(dag_id=dag_id, task_id=task_id, destinatario="airflow")
-    enviar_erro(dag_id=dag_id, task_id=task_id, destinatario="debug")
-
 def _get_cvu_mapping():
     res = requests.get(
         f'{constants.BASE_URL}/estudos-middle/api/ccee/cvu-mapping',
