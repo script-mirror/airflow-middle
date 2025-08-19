@@ -29,7 +29,7 @@ RUN PYTHONUSERBASE=/home/airflow/.local pip install --no-cache-dir --upgrade --f
 RUN rm -f ~/.git-credentials && \
     git config --global --unset credential.helper
 
-# COPY config/airflow.cfg /opt/airflow/config/airflow.cfg
+COPY config/airflow.cfg /opt/airflow/config/airflow.cfg
 COPY .env /home/airflow/.env
 
 WORKDIR /opt/airflow
