@@ -2,5 +2,5 @@
 # Exemplo:
 pandas
 requests
-git+https://github.com/raizen-energy/raizen-power-trading-libs-middle.git
-git+https://github.com/raizen-energy/trading-middle-newave.git
+git+https://github.com/wx-middle/libs-middle.git
+git+https://github.com/wx-middle/inewave.git
