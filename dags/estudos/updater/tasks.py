@@ -4,7 +4,6 @@ from airflow.decorators import task
 PATH_PROJETOS: str = os.getenv('PATH_PROJETOS')
 ATIVAR_ENV: str = os.getenv('ATIVAR_ENV')
 CMD_BASE = str(ATIVAR_ENV) + " python " + str(PATH_PROJETOS) + "/estudos-middle/estudos_prospec/main_roda_estudos.py "
-SSH_SERVER = os.getenv('SSH_SERVER', 'default_server')  # Configure a default or get from env
 
 @task
 def prepare_update_command(**kwargs):

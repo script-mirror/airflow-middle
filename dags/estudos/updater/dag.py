@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag
 from airflow.providers.ssh.operators.ssh import SSHOperator
-from prospec.updater.tasks import prepare_update_command
+from estudos.updater.tasks import prepare_update_command
 from middle.utils import Constants
 
 constants = Constants()
@@ -14,11 +14,11 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    dag_id='PROSPEC-SENSIBILIDADE-AUTOMATICA', 
+    dag_id='prospec-sensibilidade-automatica', 
     start_date=datetime(2025, 1, 23), 
     schedule=None, 
     catchup=False,
-    tags=['Prospec'],
+    tags=['prospec'],
 )
 def dag_prospec_atualizacao():
     

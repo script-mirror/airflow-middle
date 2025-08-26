@@ -3,4 +3,3 @@
 pandas
 requests
 git+https://github.com/wx-middle/libs-middle.git
-git+https://github.com/wx-middle/inewave.git

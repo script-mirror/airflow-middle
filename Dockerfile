@@ -21,9 +21,6 @@ RUN git config --global credential.helper store && \
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN PYTHONUSERBASE=/home/airflow/.local pip install --no-cache-dir --upgrade --force-reinstall git+https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/raizen-energy/raizen-power-trading-libs-middle.git
-RUN PYTHONUSERBASE=/home/airflow/.local pip install --no-cache-dir --upgrade --force-reinstall git+https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/raizen-energy/trading-middle-newave.git
-
 
 
 RUN rm -f ~/.git-credentials && \
