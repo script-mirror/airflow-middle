@@ -1,4 +1,4 @@
-FROM apache/airflow:3.0.3
+FROM apache/airflow:3.0.5
 COPY requirements.txt .
 
 USER root
