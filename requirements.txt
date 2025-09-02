@@ -2,4 +2,5 @@
 # Exemplo:
 pandas
 requests
+pdf2image
 git+https://github.com/wx-middle/libs-middle.git
