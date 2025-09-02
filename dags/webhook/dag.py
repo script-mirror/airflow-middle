@@ -1,6 +1,5 @@
 import datetime
 from airflow.decorators import dag
-from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.python import BranchPythonOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
 from middle.utils import sanitize_string, setup_logger
