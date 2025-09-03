@@ -22,6 +22,7 @@ default_args = {
     'owner': 'airflow',
 }
 
+ssh_to_host = "ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com"
 # DAG 1: 1.00-ENVIAR-EMAIL-ESTUDOS
 @dag(
     dag_id='1.00-ENVIAR-EMAIL-ESTUDOS',
@@ -130,7 +131,7 @@ prospec_pconjunto_prel()
 def prospec_1rv():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_1rv',
-        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com '{CMD_BASE} prevs NEXT-RV rodada Preliminar'",
+        bash_command=f"{ssh_to_host} '{CMD_BASE} prevs NEXT-RV rodada Preliminar'",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -148,7 +149,7 @@ prospec_1rv()
 def prospec_ec_ext():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_ec_ext',
-        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com '{CMD_BASE} prevs EC-EXT rodada Definitiva'",
+        bash_command=f"{ssh_to_host} '{CMD_BASE} prevs EC-EXT rodada Definitiva'",
     )
 
 prospec_ec_ext()
