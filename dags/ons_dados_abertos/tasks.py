@@ -25,7 +25,7 @@ def end_task(**kwargs):
     },
     mount_tmp_dir=False,
     mounts=[
-        Mount(source="/home/airflow/.env", target="/root/.env", type="volume")
+        Mount(source="/home/airflow/.env", target="/root/.env", type="bind")
     ],
 )
 def roda_container(**kwargs):
