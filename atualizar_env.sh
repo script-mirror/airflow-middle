@@ -22,9 +22,9 @@ docker exec -it "$CONTAINER_NAME" bash -c "
     git config --global credential.helper store
     echo 'https://${git_username}:${git_token}@github.com' > ~/.git-credentials
     
-    pip install -r /tmp/requirements.txt
+    pip install --no-cache-dir -r /tmp/requirements.txt
     
-    pip install git+https://${git_username}:${git_token}@github.com/wx-middle/libs-middle.git
+    pip install --no-cache-dir git+https://${git_username}:${git_token}@github.com/wx-middle/libs-middle.git
     
     rm /tmp/requirements.txt
     
