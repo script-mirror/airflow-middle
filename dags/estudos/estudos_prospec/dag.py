@@ -120,7 +120,6 @@ prospec_pconjunto_prel()
 ssh_hook = SSHHook(
     ssh_conn_id="ssh_master",
     key_file="/opt/airflow/config/chave-middle.pem",
-    no_host_key_check=True,
 )
 # DAG 4: 1.03-PROSPEC_1RV
 @dag(
