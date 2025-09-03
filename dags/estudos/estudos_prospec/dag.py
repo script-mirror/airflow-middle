@@ -7,7 +7,7 @@ from airflow.utils.session import provide_session
 from airflow.models import DagRun
 from airflow.models.dag import DagModel  # Updated import for Airflow 3.0
 from middle.utils import Constants
-from airflow.providers.ssh.hooks.ssh import SSHHook
+
 consts = Constants()
 
 # Comandos base
@@ -117,10 +117,6 @@ def prospec_pconjunto_prel():
 
 prospec_pconjunto_prel()
 
-ssh_hook = SSHHook(
-    ssh_conn_id="ssh_master",
-    key_file="/opt/airflow/config/chave-middle.pem",
-)
 # DAG 4: 1.03-PROSPEC_1RV
 @dag(
     dag_id='1.03-PROSPEC_1RV',
@@ -133,7 +129,7 @@ ssh_hook = SSHHook(
 def prospec_1rv():
     run_prospec_on_host = SSHOperator(
         task_id='run_prospec_1rv',
-        ssh_hook=ssh_hook,
+        ssh_conn_id='ssh_master',
         command=CMD_BASE + "prevs NEXT-RV rodada Preliminar",
         conn_timeout=28800,
         cmd_timeout=28800,
