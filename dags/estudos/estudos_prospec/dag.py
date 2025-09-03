@@ -33,15 +33,17 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
     'execution_timeout': timedelta(hours=8),
 }
-
-@task(provide_session=True)
+@task
+@provide_session
 def check_dag_state(**context) -> None:
     """Check if the DAG is paused or already running."""
     dag_id = context['dag'].dag_id
     execution_date = context['execution_date']
-    
     session = context['session']
+        
     dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
+    if not dag:
+        raise AirflowSkipException(f"DAG {dag_id} not found in database")
     
     if dag.is_paused:
         raise AirflowSkipException(f"DAG {dag_id} is paused. Skipping execution.")
