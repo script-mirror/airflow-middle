@@ -507,7 +507,7 @@ def prospec_update():
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule="none_failed_Min_one_success",
+        trigger_rule="none_failed_min_one_success",
     )
 
     trigger_atualizacao = TriggerDagRunOperator(
