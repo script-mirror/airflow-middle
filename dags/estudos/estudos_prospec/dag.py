@@ -1,495 +1,521 @@
 from datetime import datetime, timedelta
-from typing import Dict, Optional
-from airflow import DAG, Dataset
-from airflow.decorators import task
+from airflow.decorators import dag, task
+from airflow.operators.python import BranchPythonOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
-from airflow.models.dagrun import DagRun
-from airflow.models.dag import DagModel
 from airflow.utils.session import provide_session
-from airflow.utils.session import create_session
-from airflow.operators.python import get_current_context
-
-
+from airflow.models import DagRun, Dag
 from middle.utils import Constants
 
 consts = Constants()
 
+# Comandos base
 CMD_BASE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py "
 CMD_BASE_SENS = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py "
 CMD_BASE_NW = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py "
 CMD_BASE_DC = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py "
 CMD_UPDATE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py "
 
-DATASET_UPDATE = Dataset("prospec://atualizacao")
-DATASET_NEWAVE = Dataset("prospec://newave")
-
 default_args = {
     'owner': 'airflow',
-    'depends_on_past': False,
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-    'execution_timeout': timedelta(hours=8),
 }
 
-@task
-def check_dag_state() -> None:
-    """
-    Verifica se a DAG está pausada ou se já existe outra execução ativa.
-    Compatível com Airflow 3.
-    """
-    context = get_current_context()
-    dag_id = context["dag"].dag_id
-    execution_date = context["execution_date"]
-
-    with create_session() as session:
-        dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
-        if not dag:
-            raise AirflowSkipException(f"DAG {dag_id} não encontrada no banco de dados.")
-
-        if dag.is_paused:
-            raise AirflowSkipException(f"DAG {dag_id} está pausada. Pulando execução.")
-
-        active_runs = session.query(DagRun).filter(
-            DagRun.dag_id == dag_id,
-            DagRun.state == "running",
-            DagRun.execution_date != execution_date,
-        ).all()
-
-        if active_runs:
-            raise AirflowSkipException(
-                f"DAG {dag_id} já está em execução. Pulando: {active_runs}"
-            )
-
-@task
-def build_dynamic_command(base_cmd: str, dag_run_conf: Optional[Dict] = None) -> str:
-    if not dag_run_conf:
-        dag_run_conf = {}
-    
-    command = base_cmd
-    for key, value in dag_run_conf.items():
-        if value is not None:
-            if key == "list_email":
-                command += f' "{key}" \'{value}\''
-            else:
-                command += f' "{key}" "{value}"'
-    return command
-
-@task
-def build_update_command(dag_run_conf: Optional[Dict] = None) -> Dict[str, str]:
-    if not dag_run_conf:
-        dag_run_conf = {}
-    
-    produto = dag_run_conf.get('produto', '')
-    command = CMD_UPDATE
-    for key, value in dag_run_conf.items():
-        if value is not None:
-            if key == "list_email":
-                command += f' "{key}" \'{value}\''
-            else:
-                command += f' "{key}" "{value}"'
-    return {'command': command, 'produto': f'REVISAO-{produto}'}
-
-@task
-def build_sensitivity_command(dag_run_conf: Optional[Dict] = None) -> str:
-    if not dag_run_conf:
-        dag_run_conf = {}
-    
-    command = f"{CMD_BASE_SENS} \"{str(dag_run_conf)}\""
-    return command
-
-with DAG(
+# DAG 1: 1.00-ENVIAR-EMAIL-ESTUDOS
+@dag(
     dag_id='1.00-ENVIAR-EMAIL-ESTUDOS',
-    default_args=default_args,
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    cmd = build_dynamic_command(CMD_BASE)
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def enviar_email_estudos():
+    @task
+    def run_python_script_with_dynamic_params(**kwargs):
+        params = kwargs.get('params', {})
+        conteudo = ' '.join(f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"' for k, v in params.items())
+        command = CMD_BASE + conteudo
+        print(command)
+        return {'command': command}
+
+    run_script_task = run_python_script_with_dynamic_params()
+    run_prospec_on_host = SSHOperator(
+        task_id='run',
         ssh_conn_id='ssh_master',
-        command=cmd,
+        command="{{ task_instance.xcom_pull(task_ids='run_python_script_with_dynamic_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> cmd >> run_prospec
 
-with DAG(
+    run_script_task >> run_prospec_on_host
+
+enviar_email_estudos()
+
+# DAG 2: 1.01-PROSPEC_PCONJUNTO_DEFINITIVO
+@dag(
     dag_id='1.01-PROSPEC_PCONJUNTO_DEFINITIVO',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_pconjunto_definitivo():
+    @task
+    @provide_session
+    def check_if_dag_is_running(session=None, **kwargs):
+        dag_id = kwargs['dag'].dag_id
+        execution_date = kwargs['execution_date']
+        active_runs = session.query(DagRun).filter(
+            DagRun.dag_id == dag_id,
+            DagRun.state == 'running',
+            DagRun.execution_date != execution_date
+        ).all()
+        if active_runs:
+            raise AirflowSkipException(f"DAG {dag_id} já está em execução. Pulando execução {active_runs}.")
+
+    check_running = check_if_dag_is_running()
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_on_host',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs P.CONJ rodada Definitiva",
+        command=CMD_BASE + "prevs P.CONJ rodada Definitiva",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+    check_running >> run_prospec_on_host
+
+prospec_pconjunto_definitivo()
+
+# DAG 3: 1.02-PROSPEC_PCONJUNTO_PREL
+@dag(
     dag_id='1.02-PROSPEC_PCONJUNTO_PREL',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
-    schedule='0 7 * * *',
+    schedule='02 07 * * *',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_pconjunto_prel():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_pconj_prel',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs P.CONJ rodada Preliminar",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs P.CONJ rodada Preliminar",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_pconjunto_prel()
+
+# DAG 4: 1.03-PROSPEC_1RV
+@dag(
     dag_id='1.03-PROSPEC_1RV',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
-    schedule='21 6 * * *',
+    schedule="21 06 * * *",
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_1rv():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_1rv',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs NEXT-RV rodada Preliminar",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs NEXT-RV rodada Preliminar",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_1rv()
+
+# DAG 5: 1.04-PROSPEC_EC_EXT
+@dag(
     dag_id='1.04-PROSPEC_EC_EXT',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
-    schedule='0 19 * * *',
+    schedule="00 19 * * *",
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_ec_ext():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_ec_ext',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs EC-EXT rodada Definitiva",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs EC-EXT rodada Definitiva",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_ec_ext()
+
+# DAG 6: 1.05-PROSPEC_CENARIO_10
+@dag(
     dag_id='1.05-PROSPEC_CENARIO_10',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule='42 6 * * *',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_cenario_10():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_cenario_10',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs CENARIOS rodada Preliminar",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs CENARIOS rodada Preliminar",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_cenario_10()
+
+# DAG 7: 1.06-PROSPEC_CENARIO_11
+@dag(
     dag_id='1.06-PROSPEC_CENARIO_11',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule='33 7 * * 1-5',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_cenario_11():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_cenario_11',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs CENARIOS rodada Preliminar, cenario 11",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs CENARIOS rodada Preliminar, cenario 11",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_cenario_11()
+
+# DAG 8: 1.07-PROSPEC_CHUVA_0
+@dag(
     dag_id='1.07-PROSPEC_CHUVA_0',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
-    schedule='0 8 * * 1',
+    schedule='00 8 * * 1',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_chuva_0():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_chuva0',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs P.ZERO rodada Preliminar",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs P.ZERO rodada Preliminar",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_chuva_0()
+
+# DAG 9: 1.08-PROSPEC_GRUPOS-ONS
+@dag(
     dag_id='1.08-PROSPEC_GRUPOS-ONS',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
     max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_grupos_ons():
+    @task.branch
+    @provide_session
+    def check_dag_state(session=None, **kwargs):
+        dag_id = '1.08-PROSPEC_GRUPOS-ONS'
+        dag = session.query(Dag).filter(Dag.dag_id == dag_id).first()
+        return 'skip_task' if dag.is_paused else 'run_decomp_ons_grupos'
+
+    @task
+    def skip_task():
+        print("A DAG está pausada, a tarefa não será executada.")
+
+    check_dag_state_task = check_dag_state()
+    skip = skip_task()
+    run_decomp_ons_grupos = SSHOperator(
+        task_id='run_decomp_ons_grupos',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs ONS-GRUPOS rodada Preliminar",
-        conn_timeout=36000,
-        cmd_timeout=28800,
+        command=CMD_BASE + "prevs ONS-GRUPOS rodada Preliminar",
+        conn_timeout=None,
+        cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+    check_dag_state_task >> [run_decomp_ons_grupos, skip]
+
+prospec_grupos_ons()
+
+# DAG 10: 1.10-PROSPEC_GFS
+@dag(
     dag_id='1.10-PROSPEC_GFS',
-    default_args=default_args,
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    cmd = build_dynamic_command(f"{CMD_BASE}prevs PREVS_PLUVIA_GFS rvs 8 mapas GFS")
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_gfs():
+    @task
+    def run_python_gfs(**kwargs):
+        params = kwargs.get('params', {})
+        command = CMD_BASE + "prevs PREVS_PLUVIA_GFS rvs 8 mapas GFS"
+        for key, value in params.items():
+            if value is not None:
+                command += f" {key} '{value}'"
+        print(command)
+        return {'command': command}
+
+    run_script_task = run_python_gfs()
+    run_prospec_on_host = SSHOperator(
+        task_id='run',
         ssh_conn_id='ssh_master',
-        command=cmd,
+        command="{{ task_instance.xcom_pull(task_ids='run_python_gfs')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> cmd >> run_prospec
 
-with DAG(
+    run_script_task >> run_prospec_on_host
+
+prospec_gfs()
+
+# DAG 11: 1.11-PROSPEC_ATUALIZACAO
+@dag(
     dag_id='1.11-PROSPEC_ATUALIZACAO',
-    default_args=default_args,
     start_date=datetime(2025, 1, 23),
-    schedule=[DATASET_NEWAVE, DATASET_UPDATE],
+    schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    cmd = build_dynamic_command(f"{CMD_BASE}prevs UPDATE rodada Preliminar")
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_atualizacao():
+    @task
+    def run_python_update_with_dynamic_params(**kwargs):
+        params = kwargs.get('params', {})
+        command = CMD_BASE + "prevs UPDATE rodada Preliminar"
+        for key, value in params.items():
+            if value is not None:
+                command += f" {key} '{value}'"
+        print(command)
+        return {'command': command}
+
+    run_script_task = run_python_update_with_dynamic_params()
+    run_prospec_on_host = SSHOperator(
+        task_id='run',
         ssh_conn_id='ssh_master',
-        command=cmd,
+        command="{{ task_instance.xcom_pull(task_ids='run_python_update_with_dynamic_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> cmd >> run_prospec
 
-with DAG(
+    run_script_task >> run_prospec_on_host
+
+prospec_atualizacao()
+
+# DAG 12: 1.12-PROSPEC_CONSISTIDO
+@dag(
     dag_id='1.12-PROSPEC_CONSISTIDO',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
-    schedule='0 8 * * 1',
+    schedule='00 8 * * 1',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_consistido():
+    run_prospec_on_host = SSHOperator(
+        task_id='run_prospec_consistido',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs CONSISTIDO rodada Preliminar",
-        conn_timeout=36000,
+        command=CMD_BASE + "prevs CONSISTIDO rodada Preliminar",
+        conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_consistido()
+
+# DAG 13: 1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO
+@dag(
     dag_id='1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO',
-    default_args=default_args,
     start_date=datetime(2024, 7, 30),
-    schedule='0 7 * * 1-5',
+    schedule='00 07 * * 1-5',
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_pconjunto_prel_precipitacao():
+    run_pconjunto_prel_precipitacao = SSHOperator(
+        task_id='run_pconjunto_prel_precipitacao',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}prevs P.APR rodada Preliminar",
-        conn_timeout=36000,
-        cmd_timeout=28800,
+        command=CMD_BASE + "prevs P.APR rodada Preliminar",
+        conn_timeout=None,
+        cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_prospec
 
-with DAG(
+prospec_pconjunto_prel_precipitacao()
+
+# DAG 14: 1.14-PROSPEC_RODAR_SENSIBILIDADE
+@dag(
     dag_id='1.14-PROSPEC_RODAR_SENSIBILIDADE',
-    default_args=default_args,
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    cmd = build_sensitivity_command()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    default_args=default_args,
+)
+def prospec_rodar_sensibilidade():
+    @task
+    def run_sensibilidades_params(**kwargs):
+        params = kwargs.get('params', {})
+        command = CMD_BASE_SENS + " ".join(f"{k} '{v}'" for k, v in params.items() if v is not None)
+        print(command)
+        return {'command': command}
+
+    run_script_task = run_sensibilidades_params()
+    run_prospec_on_host = SSHOperator(
+        task_id='run',
         ssh_conn_id='ssh_master',
-        command=cmd,
+        command="{{ task_instance.xcom_pull(task_ids='run_sensibilidades_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> cmd >> run_prospec
 
-with DAG(
+    run_script_task >> run_prospec_on_host
+
+prospec_rodar_sensibilidade()
+
+# DAG 15: 1.16-DECOMP_ONS-TO-CCEE
+@dag(
     dag_id='1.16-DECOMP_ONS-TO-CCEE',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-) as dag:
-    check = check_dag_state()
-    run_decomp = SSHOperator(
+    default_args=default_args,
+)
+def decomp_ons_to_ccee():
+    run_decomp_on_host = SSHOperator(
         task_id='run_decomp',
         ssh_conn_id='ssh_master',
         command=CMD_BASE_DC,
-        conn_timeout=36000,
-        cmd_timeout=28800,
+        conn_timeout=None,
+        cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
-    check >> run_decomp
 
-with DAG(
+decomp_ons_to_ccee()
+
+# DAG 16: 1.17-NEWAVE_ONS-TO-CCEE
+@dag(
     dag_id='1.17-NEWAVE_ONS-TO-CCEE',
-    default_args=default_args,
     start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-    datasets=[DATASET_NEWAVE],
-) as dag:
-    check = check_dag_state()
-    run_newave = SSHOperator(
+    default_args=default_args,
+)
+def newave_ons_to_ccee():
+    run_nw_on_host = SSHOperator(
         task_id='run_newave',
         ssh_conn_id='ssh_master',
         command=CMD_BASE_NW,
-        conn_timeout=36000,
-        cmd_timeout=28800,
+        conn_timeout=None,
+        cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
+
     trigger_atualizacao = TriggerDagRunOperator(
         task_id='trigger_atualizacao',
         trigger_dag_id='1.11-PROSPEC_ATUALIZACAO',
-        conf={"nome_estudo": "REVISAO-NEWAVE"},
+        conf={"nome_estudo": 'REVISAO-NEWAVE'},
         wait_for_completion=False,
     )
-    check >> run_newave >> trigger_atualizacao
 
-with DAG(
+    run_nw_on_host >> trigger_atualizacao
+
+newave_ons_to_ccee()
+
+# DAG 17: 1.18-PROSPEC_UPDATE
+@dag(
     dag_id='1.18-PROSPEC_UPDATE',
-    default_args=default_args,
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
-    max_active_runs=1,
     tags=['Prospec'],
-    datasets=[DATASET_UPDATE],
-) as dag:
-    check = check_dag_state()
-    cmd_and_produto = build_update_command()
-    run_prospec = SSHOperator(
-        task_id='run_prospec',
+    max_active_runs=1,
+    default_args=default_args,
+)
+def prospec_update():
+    @task
+    def run_prospec_update(**kwargs):
+        params = kwargs.get('params', {})
+        produto = params.get('produto', '')
+        conteudo = ' '.join(f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"' for k, v in params.items())
+        command = CMD_UPDATE + conteudo
+        print(command)
+        return {'command': command, 'produto': f'REVISAO-{produto}'}
+
+    run_script_task = run_prospec_update()
+    run_prospec_on_host = SSHOperator(
+        task_id='run',
         ssh_conn_id='ssh_master',
-        command=cmd_and_produto['command'],
+        command="{{ task_instance.xcom_pull(task_ids='run_prospec_update')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule='none_failed_min_one_success',
+        trigger_rule="none_failed_min_one_success",
     )
+
     trigger_atualizacao = TriggerDagRunOperator(
         task_id='trigger_atualizacao',
         trigger_dag_id='1.11-PROSPEC_ATUALIZACAO',
-        conf={"nome_estudo": cmd_and_produto['produto']},
+        conf={"nome_estudo": "{{ task_instance.xcom_pull(task_ids='run_prospec_update')['produto'] }}"},
         wait_for_completion=False,
     )
-    check >> cmd_and_produto >> run_prospec >> trigger_atualizacao
+
+    run_script_task >> run_prospec_on_host >> trigger_atualizacao
+
+prospec_update()
