@@ -3,7 +3,7 @@ from datetime import datetime
 from datetime import timedelta
 from airflow import DAG
 from airflow.providers.ssh.operators.ssh import SSHOperator
-from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.models import DagBag
 from airflow.models import DagRun
