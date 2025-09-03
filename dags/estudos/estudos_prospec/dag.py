@@ -84,7 +84,7 @@ def prospec_pconjunto_definitivo():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_on_host',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.CONJ rodada Definitiva",
+        bash_command=CMD_BASE + "prevs P.CONJ rodada Definitiva",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -109,7 +109,7 @@ def prospec_pconjunto_prel():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_pconj_prel',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.CONJ rodada Preliminar",
+        bash_command=CMD_BASE + "prevs P.CONJ rodada Preliminar",
         conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -167,7 +167,7 @@ def prospec_cenario_10():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_cenario_10',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CENARIOS rodada Preliminar",
+        bash_commandbash_command=CMD_BASE + "prevs CENARIOS rodada Preliminar",
         conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -190,7 +190,7 @@ def prospec_cenario_11():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_cenario_11',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CENARIOS rodada Preliminar, cenario 11",
+        bash_command=CMD_BASE + "prevs CENARIOS rodada Preliminar, cenario 11",
         conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -213,7 +213,7 @@ def prospec_chuva_0():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_chuva0',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.ZERO rodada Preliminar",
+        bash_command=CMD_BASE + "prevs P.ZERO rodada Preliminar",
         conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -250,7 +250,7 @@ def prospec_grupos_ons():
     run_decomp_ons_grupos = BashOperator(
         task_id='run_decomp_ons_grupos',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs ONS-GRUPOS rodada Preliminar",
+        bash_command=CMD_BASE + "prevs ONS-GRUPOS rodada Preliminar",
         conn_timeout=None,
         cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
@@ -286,7 +286,7 @@ def prospec_gfs():
     run_prospec_on_host = BashOperator(
         task_id='run',
         ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_gfs')['command'] }}",
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_gfs')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -322,7 +322,7 @@ def prospec_atualizacao():
     run_prospec_on_host = BashOperator(
         task_id='run',
         ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_update_with_dynamic_params')['command'] }}",
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_update_with_dynamic_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -347,7 +347,7 @@ def prospec_consistido():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_consistido',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CONSISTIDO rodada Preliminar",
+        bash_command=CMD_BASE + "prevs CONSISTIDO rodada Preliminar",
         conn_timeout=28800,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -370,7 +370,7 @@ def prospec_pconjunto_prel_precipitacao():
     run_pconjunto_prel_precipitacao = BashOperator(
         task_id='run_pconjunto_prel_precipitacao',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.APR rodada Preliminar",
+        bash_command=CMD_BASE + "prevs P.APR rodada Preliminar",
         conn_timeout=None,
         cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
@@ -401,7 +401,7 @@ def prospec_rodar_sensibilidade():
     run_prospec_on_host = BashOperator(
         task_id='run',
         ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_sensibilidades_params')['command'] }}",
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_sensibilidades_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
@@ -426,7 +426,7 @@ def decomp_ons_to_ccee():
     run_decomp_on_host = BashOperator(
         task_id='run_decomp',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE_DC,
+        bash_command=CMD_BASE_DC,
         conn_timeout=None,
         cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
@@ -449,7 +449,7 @@ def newave_ons_to_ccee():
     run_nw_on_host = BashOperator(
         task_id='run_newave',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE_NW,
+        bash_command=CMD_BASE_NW,
         conn_timeout=None,
         cmd_timeout=None,
         execution_timeout=timedelta(hours=20),
@@ -492,7 +492,7 @@ def prospec_update():
     run_prospec_on_host = BashOperator(
         task_id='run',
         ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_prospec_update')['command'] }}",
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_prospec_update')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
