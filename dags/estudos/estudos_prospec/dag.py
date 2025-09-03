@@ -370,7 +370,7 @@ prospec_consistido()
 # DAG 13: 1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO
 @dag(
     dag_id='1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO',
-    start_date=datetime(2024 permiten, 7, 30),
+    start_date=datetime(2024, 7, 30),
     schedule='00 07 * * 1-5',
     catchup=False,
     tags=['Prospec'],
