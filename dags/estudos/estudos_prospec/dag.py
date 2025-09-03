@@ -12,18 +12,15 @@ from middle.utils import Constants
 
 consts = Constants()
 
-# Command templates
 CMD_BASE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py "
 CMD_BASE_SENS = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py "
 CMD_BASE_NW = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py "
 CMD_BASE_DC = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py "
 CMD_UPDATE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py "
 
-# Define datasets for dependency-driven scheduling
 DATASET_UPDATE = Dataset("prospec://atualizacao")
 DATASET_NEWAVE = Dataset("prospec://newave")
 
-# Default arguments for all DAGs
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -33,14 +30,13 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
     'execution_timeout': timedelta(hours=8),
 }
+
 @task
 @provide_session
-def check_dag_state(**context) -> None:
-    """Check if the DAG is paused or already running."""
+def check_dag_state(session, **context) -> None:
     dag_id = context['dag'].dag_id
     execution_date = context['execution_date']
-    session = context['session']
-        
+    
     dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
     if not dag:
         raise AirflowSkipException(f"DAG {dag_id} not found in database")
@@ -59,9 +55,9 @@ def check_dag_state(**context) -> None:
 
 @task
 def build_dynamic_command(base_cmd: str, dag_run_conf: Optional[Dict] = None) -> str:
-    """Build a command string from base command and dag_run.conf parameters."""
     if not dag_run_conf:
         dag_run_conf = {}
+    
     command = base_cmd
     for key, value in dag_run_conf.items():
         if value is not None:
@@ -73,9 +69,9 @@ def build_dynamic_command(base_cmd: str, dag_run_conf: Optional[Dict] = None) ->
 
 @task
 def build_update_command(dag_run_conf: Optional[Dict] = None) -> Dict[str, str]:
-    """Build update command and produto for triggering PROSPEC_ATUALIZACAO."""
     if not dag_run_conf:
         dag_run_conf = {}
+    
     produto = dag_run_conf.get('produto', '')
     command = CMD_UPDATE
     for key, value in dag_run_conf.items():
@@ -88,13 +84,12 @@ def build_update_command(dag_run_conf: Optional[Dict] = None) -> Dict[str, str]:
 
 @task
 def build_sensitivity_command(dag_run_conf: Optional[Dict] = None) -> str:
-    """Build command for sensitivity analysis with dynamic parameters."""
     if not dag_run_conf:
         dag_run_conf = {}
-    return f"{CMD_BASE_SENS} \"{str(dag_run_conf)}\""
+    
+    command = f"{CMD_BASE_SENS} \"{str(dag_run_conf)}\""
+    return command
 
-# DAG Definitions
-# 1.00-ENVIAR-EMAIL-ESTUDOS
 with DAG(
     dag_id='1.00-ENVIAR-EMAIL-ESTUDOS',
     default_args=default_args,
@@ -118,7 +113,6 @@ with DAG(
     )
     check >> cmd >> run_prospec
 
-# 1.01-PROSPEC_PCONJUNTO_DEFINITIVO
 with DAG(
     dag_id='1.01-PROSPEC_PCONJUNTO_DEFINITIVO',
     default_args=default_args,
@@ -141,7 +135,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.02-PROSPEC_PCONJUNTO_PREL
 with DAG(
     dag_id='1.02-PROSPEC_PCONJUNTO_PREL',
     default_args=default_args,
@@ -164,7 +157,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.03-PROSPEC_1RV
 with DAG(
     dag_id='1.03-PROSPEC_1RV',
     default_args=default_args,
@@ -187,7 +179,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.04-PROSPEC_EC_EXT
 with DAG(
     dag_id='1.04-PROSPEC_EC_EXT',
     default_args=default_args,
@@ -210,7 +201,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.05-PROSPEC_CENARIO_10
 with DAG(
     dag_id='1.05-PROSPEC_CENARIO_10',
     default_args=default_args,
@@ -233,7 +223,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.06-PROSPEC_CENARIO_11
 with DAG(
     dag_id='1.06-PROSPEC_CENARIO_11',
     default_args=default_args,
@@ -256,7 +245,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.07-PROSPEC_CHUVA_0
 with DAG(
     dag_id='1.07-PROSPEC_CHUVA_0',
     default_args=default_args,
@@ -279,7 +267,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.08-PROSPEC_GRUPOS-ONS
 with DAG(
     dag_id='1.08-PROSPEC_GRUPOS-ONS',
     default_args=default_args,
@@ -302,7 +289,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.10-PROSPEC_GFS
 with DAG(
     dag_id='1.10-PROSPEC_GFS',
     default_args=default_args,
@@ -326,7 +312,6 @@ with DAG(
     )
     check >> cmd >> run_prospec
 
-# 1.11-PROSPEC_ATUALIZACAO
 with DAG(
     dag_id='1.11-PROSPEC_ATUALIZACAO',
     default_args=default_args,
@@ -350,7 +335,6 @@ with DAG(
     )
     check >> cmd >> run_prospec
 
-# 1.12-PROSPEC_CONSISTIDO
 with DAG(
     dag_id='1.12-PROSPEC_CONSISTIDO',
     default_args=default_args,
@@ -373,7 +357,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO
 with DAG(
     dag_id='1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO',
     default_args=default_args,
@@ -396,7 +379,6 @@ with DAG(
     )
     check >> run_prospec
 
-# 1.14-PROSPEC_RODAR_SENSIBILIDADE
 with DAG(
     dag_id='1.14-PROSPEC_RODAR_SENSIBILIDADE',
     default_args=default_args,
@@ -420,7 +402,6 @@ with DAG(
     )
     check >> cmd >> run_prospec
 
-# 1.16-DECOMP_ONS-TO-CCEE
 with DAG(
     dag_id='1.16-DECOMP_ONS-TO-CCEE',
     default_args=default_args,
@@ -443,7 +424,6 @@ with DAG(
     )
     check >> run_decomp
 
-# 1.17-NEWAVE_ONS-TO-CCEE
 with DAG(
     dag_id='1.17-NEWAVE_ONS-TO-CCEE',
     default_args=default_args,
@@ -473,7 +453,6 @@ with DAG(
     )
     check >> run_newave >> trigger_atualizacao
 
-# 1.18-PROSPEC_UPDATE
 with DAG(
     dag_id='1.18-PROSPEC_UPDATE',
     default_args=default_args,
@@ -503,4 +482,3 @@ with DAG(
         wait_for_completion=False,
     )
     check >> cmd_and_produto >> run_prospec >> trigger_atualizacao
-
