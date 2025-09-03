@@ -8,6 +8,8 @@ from airflow.exceptions import AirflowSkipException
 from airflow.models.dagrun import DagRun
 from airflow.models.dag import DagModel
 from airflow.utils.session import provide_session
+from airflow.utils.session import create_session
+
 from middle.utils import Constants
 
 consts = Constants()
@@ -31,27 +33,32 @@ default_args = {
     'execution_timeout': timedelta(hours=8),
 }
 
-@task
-@provide_session
-def check_dag_state(session, **context) -> None:
-    dag_id = context['dag'].dag_id
-    execution_date = context['execution_date']
-    
-    dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
-    if not dag:
-        raise AirflowSkipException(f"DAG {dag_id} not found in database")
-    
-    if dag.is_paused:
-        raise AirflowSkipException(f"DAG {dag_id} is paused. Skipping execution.")
-    
-    active_runs = session.query(DagRun).filter(
-        DagRun.dag_id == dag_id,
-        DagRun.state == 'running',
-        DagRun.execution_date != execution_date
-    ).all()
-    
-    if active_runs:
-        raise AirflowSkipException(f"DAG {dag_id} is already running. Skipping: {active_runs}")
+def check_dag_state(**context) -> None:
+    """
+    Verifica se a DAG está pausada ou já em execução.
+    Compatível com Airflow 3 (sem @provide_session).
+    """
+    dag_id = context["dag"].dag_id
+    execution_date = context["execution_date"]
+
+    with create_session() as session:
+        dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
+        if not dag:
+            raise AirflowSkipException(f"DAG {dag_id} não encontrada no banco de dados.")
+
+        if dag.is_paused:
+            raise AirflowSkipException(f"DAG {dag_id} está pausada. Pulando execução.")
+
+        active_runs = session.query(DagRun).filter(
+            DagRun.dag_id == dag_id,
+            DagRun.state == "running",
+            DagRun.execution_date != execution_date,
+        ).all()
+
+        if active_runs:
+            raise AirflowSkipException(
+                f"DAG {dag_id} já está em execução. Pulando: {active_runs}"
+            )
 
 @task
 def build_dynamic_command(base_cmd: str, dag_run_conf: Optional[Dict] = None) -> str:
