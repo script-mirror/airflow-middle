@@ -3,4 +3,5 @@
 pandas
 requests
 pdf2image
+docker
 git+https://github.com/wx-middle/libs-middle.git

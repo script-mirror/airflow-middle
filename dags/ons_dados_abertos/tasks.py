@@ -1,4 +1,5 @@
 from airflow.decorators import task
+from docker.types import Mount
 from middle.utils import (
     Constants,
     setup_logger,
@@ -23,7 +24,9 @@ def end_task(**kwargs):
         "ano": "{{ logical_date.year }}",
     },
     mount_tmp_dir=False,
-    mounts=["/home/airflow/.env:/root/.env"],
+    mounts=[
+        Mount(source="/home/airflow/.env", target="/root/.env")
+    ],
 )
 def roda_container(**kwargs):
     pass
