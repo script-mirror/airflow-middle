@@ -24,7 +24,6 @@ def end_task(**kwargs):
         "nome": "{{ task.task_id }}",
         "ano": "{{ logical_date.year }}",
     },
-    mount_tmp_dir=False,
     mounts=[
         Mount(source=host_env, target="/root/.env", type="bind")
     ],
