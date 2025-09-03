@@ -8,7 +8,7 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 from airflow.models.dagrun import DagRun
 from airflow.utils.session import provide_session
-from airflow.utils.dag_parsing_context import DagParsingContext
+from airflow.sdk.definitions.context import get_parsing_context
 from middle.utils import Constants
 
 consts = Constants()
@@ -38,7 +38,7 @@ default_args = {
 @task(provide_session=True)
 def check_dag_state(dag_id: str, execution_date: datetime, session=None) -> None:
     """Check if the DAG is paused or already running."""
-    context = DagParsingContext.get_parsing_context()
+    context = get_parsing_context()
     dag = context.dag_bag.get_dag(dag_id)
     
     if dag.is_paused:
