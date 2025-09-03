@@ -1,28 +1,27 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
-from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.bash import BashOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.session import provide_session
 from airflow.models import DagRun
-from airflow.models.dag import DagModel  # Updated import for Airflow 3.0
+from airflow.models.dag import DagModel
 from middle.utils import Constants
 
 consts = Constants()
 
-# Comandos base
-CMD_BASE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py "
-CMD_BASE_SENS = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py "
-CMD_BASE_NW = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py "
-CMD_BASE_DC = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py "
-CMD_UPDATE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py "
+# Base commands
+SSH = "ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com"
+CMD_BASE = f"{SSH} {consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py "
+CMD_BASE_SENS = f"{SSH} {consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py "
+CMD_BASE_NW = f"{SSH} {consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py "
+CMD_BASE_DC = f"{SSH} {consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py "
+CMD_UPDATE = f"{SSH} {consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py "
 
 default_args = {
     'owner': 'airflow',
 }
 
-ssh_to_host = "ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com"
 # DAG 1: 1.00-ENVIAR-EMAIL-ESTUDOS
 @dag(
     dag_id='1.00-ENVIAR-EMAIL-ESTUDOS',
@@ -42,14 +41,9 @@ def enviar_email_estudos():
         return {'command': command}
 
     run_script_task = run_python_script_with_dynamic_params()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run',
-        ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_script_with_dynamic_params')['command'] }}",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_script_with_dynamic_params')['command'] }}",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -81,14 +75,9 @@ def prospec_pconjunto_definitivo():
             raise AirflowSkipException(f"DAG {dag_id} já está em execução. Pulando execução {active_runs}.")
 
     check_running = check_if_dag_is_running()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_on_host',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.CONJ rodada Definitiva",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs P.CONJ rodada Definitiva",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -106,14 +95,9 @@ prospec_pconjunto_definitivo()
     default_args=default_args,
 )
 def prospec_pconjunto_prel():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_pconj_prel',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.CONJ rodada Preliminar",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs P.CONJ rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -131,7 +115,7 @@ prospec_pconjunto_prel()
 def prospec_1rv():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_1rv',
-        bash_command=f"{ssh_to_host} '{CMD_BASE} prevs NEXT-RV rodada Preliminar'",
+        bash_command=f"{CMD_BASE} prevs NEXT-RV rodada Preliminar'",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -149,7 +133,7 @@ prospec_1rv()
 def prospec_ec_ext():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_ec_ext',
-        bash_command=f"{ssh_to_host} '{CMD_BASE} prevs EC-EXT rodada Definitiva'",
+        bash_command=f"{CMD_BASE} prevs EC-EXT rodada Definitiva'",
     )
 
 prospec_ec_ext()
@@ -164,14 +148,9 @@ prospec_ec_ext()
     default_args=default_args,
 )
 def prospec_cenario_10():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_cenario_10',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CENARIOS rodada Preliminar",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs CENARIOS rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -187,14 +166,9 @@ prospec_cenario_10()
     default_args=default_args,
 )
 def prospec_cenario_11():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_cenario_11',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CENARIOS rodada Preliminar, cenario 11",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs CENARIOS rodada Preliminar, cenario 11",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -210,14 +184,9 @@ prospec_cenario_11()
     default_args=default_args,
 )
 def prospec_chuva_0():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_chuva0',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.ZERO rodada Preliminar",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs P.ZERO rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -247,14 +216,9 @@ def prospec_grupos_ons():
 
     check_dag_state_task = check_dag_state()
     skip = skip_task()
-    run_decomp_ons_grupos = SSHOperator(
+    run_decomp_ons_grupos = BashOperator(
         task_id='run_decomp_ons_grupos',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs ONS-GRUPOS rodada Preliminar",
-        conn_timeout=None,
-        cmd_timeout=None,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs ONS-GRUPOS rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -283,14 +247,9 @@ def prospec_gfs():
         return {'command': command}
 
     run_script_task = run_python_gfs()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run',
-        ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_gfs')['command'] }}",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_gfs')['command'] }}",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -319,14 +278,9 @@ def prospec_atualizacao():
         return {'command': command}
 
     run_script_task = run_python_update_with_dynamic_params()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run',
-        ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_update_with_dynamic_params')['command'] }}",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_update_with_dynamic_params')['command'] }}",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -344,14 +298,9 @@ prospec_atualizacao()
     default_args=default_args,
 )
 def prospec_consistido():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_consistido',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs CONSISTIDO rodada Preliminar",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs CONSISTIDO rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -367,14 +316,9 @@ prospec_consistido()
     default_args=default_args,
 )
 def prospec_pconjunto_prel_precipitacao():
-    run_pconjunto_prel_precipitacao = SSHOperator(
+    run_pconjunto_prel_precipitacao = BashOperator(
         task_id='run_pconjunto_prel_precipitacao',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs P.APR rodada Preliminar",
-        conn_timeout=None,
-        cmd_timeout=None,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE + "prevs P.APR rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -398,14 +342,9 @@ def prospec_rodar_sensibilidade():
         return {'command': command}
 
     run_script_task = run_sensibilidades_params()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run',
-        ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_sensibilidades_params')['command'] }}",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_sensibilidades_params')['command'] }}",
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -423,14 +362,9 @@ prospec_rodar_sensibilidade()
     default_args=default_args,
 )
 def decomp_ons_to_ccee():
-    run_decomp_on_host = SSHOperator(
+    run_decomp_on_host = BashOperator(
         task_id='run_decomp',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE_DC,
-        conn_timeout=None,
-        cmd_timeout=None,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE_DC,
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -446,14 +380,9 @@ decomp_ons_to_ccee()
     default_args=default_args,
 )
 def newave_ons_to_ccee():
-    run_nw_on_host = SSHOperator(
+    run_nw_on_host = BashOperator(
         task_id='run_newave',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE_NW,
-        conn_timeout=None,
-        cmd_timeout=None,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command=CMD_BASE_NW,
         trigger_rule="none_failed_min_one_success",
     )
 
@@ -489,14 +418,9 @@ def prospec_update():
         return {'command': command, 'produto': f'REVISAO-{produto}'}
 
     run_script_task = run_prospec_update()
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run',
-        ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_prospec_update')['command'] }}",
-        conn_timeout=36000,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_prospec_update')['command'] }}",
         trigger_rule="none_failed_min_one_success",
     )
 
