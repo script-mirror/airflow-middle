@@ -15,12 +15,18 @@ fi
 
 echo "Usando container: $CONTAINER_NAME"
 
+echo "Copiando requirements.txt para o container..."
+docker cp requirements.txt "$CONTAINER_NAME":/tmp/requirements.txt
+
 docker exec -it "$CONTAINER_NAME" bash -c "
     git config --global credential.helper store
     echo 'https://${git_username}:${git_token}@github.com' > ~/.git-credentials
     
-    pip uninstall -y libs-middle inewave
+    pip install -r /tmp/requirements.txt
+    
     pip install git+https://${git_username}:${git_token}@github.com/wx-middle/libs-middle.git
+    
+    rm /tmp/requirements.txt
     
     echo 'Bibliotecas atualizadas com sucesso'
 "
