@@ -128,13 +128,10 @@ prospec_pconjunto_prel()
     default_args=default_args,
 )
 def prospec_1rv():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_1rv',
         ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs NEXT-RV rodada Preliminar",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
+        command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE} prevs NEXT-RV rodada Preliminar",
         get_pty=True,
         trigger_rule="none_failed_min_one_success",
     )
@@ -153,8 +150,7 @@ prospec_1rv()
 def prospec_ec_ext():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_ec_ext',
-        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE}prevs EC-EXT rodada Definitiva'",
-        env={},  # opcional: definir variáveis de ambiente
+        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE} prevs EC-EXT rodada Definitiva'",
     )
 
 prospec_ec_ext()
