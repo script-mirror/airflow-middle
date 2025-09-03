@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.providers.ssh.operators.ssh import SSHOperator
+from airflow.operators.bash import BashOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.session import provide_session
@@ -150,15 +151,10 @@ prospec_1rv()
     default_args=default_args,
 )
 def prospec_ec_ext():
-    run_prospec_on_host = SSHOperator(
+    run_prospec_on_host = BashOperator(
         task_id='run_prospec_ec_ext',
-        ssh_conn_id='ssh_master',
-        command=CMD_BASE + "prevs EC-EXT rodada Definitiva",
-        conn_timeout=28800,
-        cmd_timeout=28800,
-        execution_timeout=timedelta(hours=20),
-        get_pty=True,
-        trigger_rule="none_failed_min_one_success",
+        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE}prevs EC-EXT rodada Definitiva'",
+        env={},  # opcional: definir variáveis de ambiente
     )
 
 prospec_ec_ext()
