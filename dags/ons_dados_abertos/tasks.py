@@ -1,10 +1,11 @@
 from airflow.decorators import task
 from docker.types import Mount
+import os
 from middle.utils import (
     Constants,
     setup_logger,
 )
-
+host_env = os.path.expanduser("~/.env")
 logger = setup_logger()
 constants = Constants()
 
@@ -25,7 +26,7 @@ def end_task(**kwargs):
     },
     mount_tmp_dir=False,
     mounts=[
-        Mount(source="/home/airflow/.env", target="/root/.env", type="bind")
+        Mount(source=host_env, target="/root/.env", type="bind")
     ],
 )
 def roda_container(**kwargs):
