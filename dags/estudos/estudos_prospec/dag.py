@@ -5,7 +5,8 @@ from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.session import provide_session
-from airflow.models import DagRun, Dag
+from airflow.models import DagRun
+from airflow.models.dag import DagModel  # Updated import for Airflow 3.0
 from middle.utils import Constants
 
 consts = Constants()
@@ -247,7 +248,7 @@ def prospec_grupos_ons():
     @provide_session
     def check_dag_state(session=None, **kwargs):
         dag_id = '1.08-PROSPEC_GRUPOS-ONS'
-        dag = session.query(Dag).filter(Dag.dag_id == dag_id).first()
+        dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
         return 'skip_task' if dag.is_paused else 'run_decomp_ons_grupos'
 
     @task
@@ -369,7 +370,7 @@ prospec_consistido()
 # DAG 13: 1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO
 @dag(
     dag_id='1.13-PROSPEC_PCONJUNTO_PREL_PRECIPITACAO',
-    start_date=datetime(2024, 7, 30),
+    start_date=datetime(2024 permiten, 7, 30),
     schedule='00 07 * * 1-5',
     catchup=False,
     tags=['Prospec'],
@@ -506,7 +507,7 @@ def prospec_update():
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
         get_pty=True,
-        trigger_rule="none_failed_min_one_success",
+        trigger_rule="none_failed_Min_one_success",
     )
 
     trigger_atualizacao = TriggerDagRunOperator(
