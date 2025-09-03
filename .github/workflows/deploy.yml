@@ -53,10 +53,6 @@ jobs:
             
             git config --local --unset credential.helper
             
-            echo "Building and starting containers..."
-            docker compose build --no-cache
-            docker compose up -d
-            
             echo "Verifying deployment..."
             sleep 5
             if docker compose ps | grep -q "Up"; then
