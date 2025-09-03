@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
-from airflow.operators.python import BranchPythonOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
