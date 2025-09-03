@@ -130,7 +130,7 @@ prospec_pconjunto_prel()
 def prospec_1rv():
     run_prospec_on_host = BashOperator(
         task_id='run_prospec_1rv',
-        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE} prevs NEXT-RV rodada Preliminar",
+        bash_command=f"ssh -i /opt/airflow/config/chave-middle.pem tradingenergiarz.com '{CMD_BASE} prevs NEXT-RV rodada Preliminar'",
         trigger_rule="none_failed_min_one_success",
     )
 
