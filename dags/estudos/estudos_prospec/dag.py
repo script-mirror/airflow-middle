@@ -9,6 +9,8 @@ from airflow.models.dagrun import DagRun
 from airflow.models.dag import DagModel
 from airflow.utils.session import provide_session
 from airflow.utils.session import create_session
+from airflow.operators.python import get_current_context
+
 
 from middle.utils import Constants
 
@@ -33,11 +35,13 @@ default_args = {
     'execution_timeout': timedelta(hours=8),
 }
 
-def check_dag_state(**context) -> None:
+@task
+def check_dag_state() -> None:
     """
-    Verifica se a DAG está pausada ou já em execução.
-    Compatível com Airflow 3 (sem @provide_session).
+    Verifica se a DAG está pausada ou se já existe outra execução ativa.
+    Compatível com Airflow 3.
     """
+    context = get_current_context()
     dag_id = context["dag"].dag_id
     execution_date = context["execution_date"]
 
