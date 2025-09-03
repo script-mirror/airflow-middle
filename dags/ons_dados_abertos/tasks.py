@@ -23,9 +23,7 @@ def end_task(**kwargs):
         "ano": "{{ logical_date.year }}",
     },
     mount_tmp_dir=False,
-    operator_extra_kwargs={
-        "volumes": ["/home/airflow/.env:/root/.env"]
-    },
+    mounts=["/home/airflow/.env:/root/.env"],
 )
 def roda_container(**kwargs):
     pass
