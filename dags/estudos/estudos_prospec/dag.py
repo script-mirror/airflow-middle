@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from airflow import DAG, Dataset
@@ -7,8 +6,8 @@ from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 from airflow.models.dagrun import DagRun
+from airflow.models.dag import DagModel
 from airflow.utils.session import provide_session
-from airflow.sdk.definitions.context import get_parsing_context
 from middle.utils import Constants
 
 consts = Constants()
@@ -36,10 +35,13 @@ default_args = {
 }
 
 @task(provide_session=True)
-def check_dag_state(dag_id: str, execution_date: datetime, session=None) -> None:
+def check_dag_state(**context) -> None:
     """Check if the DAG is paused or already running."""
-    context = get_parsing_context()
-    dag = context.dag_bag.get_dag(dag_id)
+    dag_id = context['dag'].dag_id
+    execution_date = context['execution_date']
+    
+    session = context['session']
+    dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
     
     if dag.is_paused:
         raise AirflowSkipException(f"DAG {dag_id} is paused. Skipping execution.")
@@ -100,7 +102,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     cmd = build_dynamic_command(CMD_BASE)
     run_prospec = SSHOperator(
         task_id='run_prospec',
@@ -124,7 +126,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -147,7 +149,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -170,7 +172,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -193,7 +195,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -216,7 +218,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -239,7 +241,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -262,7 +264,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -285,7 +287,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -308,7 +310,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     cmd = build_dynamic_command(f"{CMD_BASE}prevs PREVS_PLUVIA_GFS rvs 8 mapas GFS")
     run_prospec = SSHOperator(
         task_id='run_prospec',
@@ -327,12 +329,12 @@ with DAG(
     dag_id='1.11-PROSPEC_ATUALIZACAO',
     default_args=default_args,
     start_date=datetime(2025, 1, 23),
-    schedule=[DATASET_NEWAVE],  # Triggered by NEWAVE dataset
+    schedule=[DATASET_NEWAVE, DATASET_UPDATE],
     catchup=False,
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     cmd = build_dynamic_command(f"{CMD_BASE}prevs UPDATE rodada Preliminar")
     run_prospec = SSHOperator(
         task_id='run_prospec',
@@ -356,7 +358,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -379,7 +381,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_prospec = SSHOperator(
         task_id='run_prospec',
         ssh_conn_id='ssh_master',
@@ -402,7 +404,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     cmd = build_sensitivity_command()
     run_prospec = SSHOperator(
         task_id='run_prospec',
@@ -426,7 +428,7 @@ with DAG(
     max_active_runs=1,
     tags=['Prospec'],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_decomp = SSHOperator(
         task_id='run_decomp',
         ssh_conn_id='ssh_master',
@@ -448,9 +450,9 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     tags=['Prospec'],
-    datasets=[DATASET_NEWAVE],  # Produces NEWAVE dataset
+    datasets=[DATASET_NEWAVE],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     run_newave = SSHOperator(
         task_id='run_newave',
         ssh_conn_id='ssh_master',
@@ -478,9 +480,9 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     tags=['Prospec'],
-    datasets=[DATASET_UPDATE],  # Produces UPDATE dataset
+    datasets=[DATASET_UPDATE],
 ) as dag:
-    check = check_dag_state(dag.dag_id)
+    check = check_dag_state()
     cmd_and_produto = build_update_command()
     run_prospec = SSHOperator(
         task_id='run_prospec',
@@ -499,3 +501,4 @@ with DAG(
         wait_for_completion=False,
     )
     check >> cmd_and_produto >> run_prospec >> trigger_atualizacao
+
