@@ -45,7 +45,7 @@ def enviar_email_estudos():
     run_prospec_on_host = BashOperator(
         task_id='run',
         ssh_conn_id='ssh_master',
-        command="{{ task_instance.xcom_pull(task_ids='run_python_script_with_dynamic_params')['command'] }}",
+        bash_command="{{ task_instance.xcom_pull(task_ids='run_python_script_with_dynamic_params')['command'] }}",
         conn_timeout=36000,
         cmd_timeout=28800,
         execution_timeout=timedelta(hours=20),
