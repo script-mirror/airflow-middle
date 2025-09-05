@@ -26,6 +26,7 @@ def end_task(**kwargs):
 
 
 @task.docker(
+    docker_url="tcp://docker-proxy:2375",
     image="ons-dados-abertos",
     environment={
         "nome": "{{ task.task_id }}",
