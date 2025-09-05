@@ -33,7 +33,7 @@ def dag_ons_dados_abertos():
     tasks = []
 
     for produto in TASKS:
-        task_id = sanitize_string(produto, space_char='_')
+        task_id = produto
         t = roda_container.override(task_id=task_id)()
         t.operator.on_failure_callback = enviar_whatsapp_erro
         t.operator.on_success_callback = enviar_whatsapp_sucesso
