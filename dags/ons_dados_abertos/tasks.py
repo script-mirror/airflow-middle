@@ -27,7 +27,7 @@ def end_task(**kwargs):
     mounts=[
         Mount(source=host_env, target="/root/.env", type="bind")
     ],
-    auto_remove=True,
+    auto_remove='force',
 )
 def roda_container(**kwargs):
     pass
