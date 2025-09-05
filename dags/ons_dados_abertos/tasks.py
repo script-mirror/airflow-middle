@@ -5,9 +5,16 @@ from middle.utils import (
     Constants,
     setup_logger,
 )
-host_env = os.path.expanduser("~/.env")
+
 logger = setup_logger()
 constants = Constants()
+
+git_username = os.getenv("git_username")
+git_token = os.getenv("git_token")
+
+if not git_username or not git_token:
+    logger.warning("Variáveis git_username ou git_token não encontradas no ambiente")
+
 
 @task
 def start_task(**kwargs):
@@ -23,10 +30,9 @@ def end_task(**kwargs):
     environment={
         "nome": "{{ task.task_id }}",
         "ano": "{{ logical_date.year }}",
+        "git_username": os.getenv("git_username"),
+        "git_token": os.getenv("git_token"),
     },
-    mounts=[
-        Mount(source=host_env, target="/root/.env", type="bind")
-    ],
     auto_remove='force',
 )
 def roda_container(**kwargs):
