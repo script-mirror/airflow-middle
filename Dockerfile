@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y git locales poppler-utils
 RUN sed -i -e 's/# pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen
 
+RUN groupadd -g 999 docker || true
+RUN usermod -aG docker airflow
+
 USER airflow
 
 ARG GIT_USERNAME
