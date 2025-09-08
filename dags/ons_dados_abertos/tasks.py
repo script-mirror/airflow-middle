@@ -38,4 +38,4 @@ def end_task(**kwargs):
     multiple_outputs=False,
 )
 def roda_container():
-    return None
+    return {"status": "ok"}
