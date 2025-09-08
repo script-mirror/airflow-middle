@@ -37,4 +37,4 @@ def end_task(**kwargs):
     auto_remove='force',
 )
 def roda_container(**kwargs):
-    pass
+    return True
