@@ -35,6 +35,7 @@ def end_task(**kwargs):
         "git_token": os.getenv("git_token"),
     },
     auto_remove='force',
+    multiple_outputs=False,
 )
-def roda_container(**kwargs):
-    return True
+def roda_container():
+    return None
