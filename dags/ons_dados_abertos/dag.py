@@ -1,11 +1,13 @@
+import os
 import datetime
 from airflow.decorators import dag
+from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
 from middle.utils import sanitize_string, setup_logger
 from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
 from ons_dados_abertos.tasks import (
     start_task, end_task,
-    roda_container,
+    # roda_container,
 )
 from ons_dados_abertos.constants import TASKS
 from middle.utils import Constants
@@ -34,9 +36,21 @@ def dag_ons_dados_abertos():
 
     for produto in TASKS:
         task_id = produto
-        t = roda_container.override(task_id=task_id)()
-        t.operator.on_failure_callback = enviar_whatsapp_erro
-        t.operator.on_success_callback = enviar_whatsapp_sucesso
+        t = DockerOperator(
+            task_id=task_id,
+            docker_url="tcp://docker-proxy:2375",
+            image="ons-dados-abertos",
+            environment={
+                "nome": "{{ task.task_id }}",
+                "ano": "{{ logical_date.year }}",
+                "git_username": os.getenv("git_username"),
+                "git_token": os.getenv("git_token"),
+            },
+            auto_remove="force",   # literal válido
+            xcom_all=False,        # comportamento padrão
+        )
+        t.on_failure_callback = enviar_whatsapp_erro
+        t.on_success_callback = enviar_whatsapp_sucesso
         tasks.append(t)
     start >> tasks >> end       
         
