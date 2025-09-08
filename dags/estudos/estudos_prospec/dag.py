@@ -12,11 +12,11 @@ consts = Constants()
 
 # Base commands
 SSH = "ssh -i /opt/airflow/config/chave-middle.pem -o StrictHostKeyChecking=no admin@tradingenergiarz.com"
-CMD_BASE = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py'"
-CMD_BASE_SENS = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py'"
-CMD_BASE_NW = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py'"
-CMD_BASE_DC = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py'"
-CMD_UPDATE = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py'"
+CMD_BASE = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py' "
+CMD_BASE_SENS = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py' "
+CMD_BASE_NW = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py' "
+CMD_BASE_DC = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py' "
+CMD_UPDATE = f"{SSH} '{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py' "
 
 default_args = {
     'owner': 'airflow',
