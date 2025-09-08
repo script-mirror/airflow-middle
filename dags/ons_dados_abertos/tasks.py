@@ -34,6 +34,13 @@ def end_task(**kwargs):
         "git_username": os.getenv("git_username"),
         "git_token": os.getenv("git_token"),
     },
+    mounts=[
+        Mount(
+            source=os.path.expanduser("~/.env"),
+            target="/home/.env",
+            type="bind"
+        )
+    ],
     auto_remove='force',
 )
 def roda_container(**kwargs):
