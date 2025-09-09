@@ -35,7 +35,7 @@ default_args = {
 def prospec_1rv():
     run_prospec_on_host = SSHOperator(
         task_id='run_prospec_1rv',
-        ssh_conn_id='tradingenergiarz_ssh',
+        ssh_conn_id='ssh_master',
         command=f"{CMD_BASE} prevs NEXT-RV rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
     )
