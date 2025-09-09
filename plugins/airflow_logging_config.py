@@ -18,7 +18,7 @@ LOGGING_CONFIG = {
         'task': {
             'class': 'airflow.utils.log.file_task_handler.FileTaskHandler',
             'formatter': 'airflow.task',
-            'base_log_folder': '',  
+            'base_log_folder': '/opt/airflow/logs',  
         },
     },
     'loggers': {
