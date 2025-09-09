@@ -1,11 +1,7 @@
 from datetime import datetime, timedelta
-from airflow.decorators import dag, task
+from airflow.decorators import dag
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.exceptions import AirflowSkipException
-from airflow.utils.session import provide_session
-from airflow.models import DagRun
-from airflow.models.dag import DagModel
 from middle.utils import Constants
 
 consts = Constants()
@@ -48,24 +44,11 @@ enviar_email_estudos()
     start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
+    max_active_runs=1,  # Added to prevent concurrent runs
     tags=['Prospec'],
     default_args=default_args,
 )
 def prospec_pconjunto_definitivo():
-    @task
-    @provide_session
-    def check_if_dag_is_running(session=None, **kwargs):
-        dag_id = kwargs['dag'].dag_id
-        execution_date = kwargs['execution_date']
-        active_runs = session.query(DagRun).filter(
-            DagRun.dag_id == dag_id,
-            DagRun.state == 'running',
-            DagRun.execution_date != execution_date
-        ).all()
-        if active_runs:
-            raise AirflowSkipException(f"DAG {dag_id} já está em execução. Pulando execução {active_runs}.")
-
-    check_running = check_if_dag_is_running()
     run_prospec_on_host = SSHOperator(
         task_id='run_prospec_on_host',
         ssh_conn_id='ssh_master',
@@ -74,8 +57,6 @@ def prospec_pconjunto_definitivo():
         conn_timeout=None,
         cmd_timeout=None,
     )
-
-    check_running >> run_prospec_on_host
 
 prospec_pconjunto_definitivo()
 
@@ -216,19 +197,6 @@ prospec_chuva_0()
     default_args=default_args,
 )
 def prospec_grupos_ons():
-    @task.branch
-    @provide_session
-    def check_dag_state(session=None, **kwargs):
-        dag_id = '1.08-PROSPEC_GRUPOS-ONS'
-        dag = session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
-        return 'skip_task' if dag.is_paused else 'run_decomp_ons_grupos'
-
-    @task
-    def skip_task():
-        print("A DAG está pausada, a tarefa não será executada.")
-
-    check_dag_state_task = check_dag_state()
-    skip = skip_task()
     run_decomp_ons_grupos = SSHOperator(
         task_id='run_decomp_ons_grupos',
         ssh_conn_id='ssh_master',
@@ -237,8 +205,6 @@ def prospec_grupos_ons():
         conn_timeout=None,
         cmd_timeout=None,
     )
-
-    check_dag_state_task >> [run_decomp_ons_grupos, skip]
 
 prospec_grupos_ons()
 
@@ -404,8 +370,8 @@ newave_ons_to_ccee()
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
-    tags=['Prospec'],
     max_active_runs=1,
+    tags=['Prospec'],
     default_args=default_args,
 )
 def prospec_update():
