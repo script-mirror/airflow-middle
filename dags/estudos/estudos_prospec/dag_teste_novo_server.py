@@ -38,6 +38,7 @@ def prospec_1rv():
         ssh_conn_id='ssh_master',
         command=f"{CMD_BASE} prevs NEXT-RV rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
+        timeout=None,
     )
 
 prospec_1rv()
