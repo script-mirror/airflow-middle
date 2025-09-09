@@ -1,16 +1,12 @@
 import logging
 from airflow.utils.log.file_task_handler import FileTaskHandler
-from airflow.utils.log.secrets_masker import SecretsMasker
-
-_secrets_masker = SecretsMasker()
 
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'airflow_task': {
-            '()': logging.Formatter,
-            'fmt': '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+        'airflow.task': {
+            'format': '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
         },
     },
     'handlers': {
@@ -38,6 +34,3 @@ LOGGING_CONFIG = {
         },
     },
 }
-
-
-
