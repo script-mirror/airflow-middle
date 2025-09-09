@@ -39,7 +39,6 @@ def prospec_1rv():
         command=f"{CMD_BASE} prevs NEXT-RV rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
         get_pty=True,  # Simula PTY para output mais interativo
-        strip_ansi=False,  # Mantém formatação se houver
         conn_timeout=None,
         cmd_timeout=None,
         
