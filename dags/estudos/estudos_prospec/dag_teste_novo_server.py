@@ -11,7 +11,7 @@ from middle.utils import Constants
 consts = Constants()
 
 # Base commands (stripped of SSH prefix for SSHOperator)
-CMD_BASE = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py"
+CMD_BASE = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py"
 CMD_BASE_SENS = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py"
 CMD_BASE_NW = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py"
 CMD_BASE_DC = f"{consts.ATIVAR_ENV} python {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py"
@@ -38,6 +38,8 @@ def prospec_1rv():
         ssh_conn_id='ssh_master',
         command=f"{CMD_BASE} prevs NEXT-RV rodada Preliminar",
         trigger_rule="none_failed_min_one_success",
+        get_pty=True,  # Simula PTY para output mais interativo
+        strip_ansi=False,  # Mantém formatação se houver
         conn_timeout=None,
         cmd_timeout=None,
         
