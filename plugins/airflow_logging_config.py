@@ -1,27 +1,43 @@
 import logging
-from airflow.config_templates.airflow_local_settings import DEFAULT_LOGGING_CONFIG
+from airflow.utils.log.file_task_handler import FileTaskHandler
+from airflow.utils.log.secrets_masker import SecretsMasker
 
-LOGGING_CONFIG = DEFAULT_LOGGING_CONFIG
+_secrets_masker = SecretsMasker()
 
-LOGGING_CONFIG['formatters']['airflow.task'] = {
-    'format': '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'airflow_task': {
+            '()': logging.Formatter,
+            'fmt': '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'airflow.task',
+            'stream': 'ext://sys.stdout',
+        },
+        'task': {
+            'class': 'airflow.utils.log.file_task_handler.FileTaskHandler',
+            'formatter': 'airflow.task',
+            'base_log_folder': '/opt/airflow/logs',  
+        },
+    },
+    'loggers': {
+        'airflow.task': {
+            'handlers': ['task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'airflow.task.hooks.airflow.providers.ssh.hooks.ssh.SSHHook': {
+            'handlers': ['task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }
 
-LOGGING_CONFIG['handlers']['console'] = {
-    'class': 'logging.StreamHandler',
-    'formatter': 'airflow.task',
-    'stream': 'ext://sys.stdout',
-}
 
-LOGGING_CONFIG['handlers']['task'] = {
-    'class': 'airflow.utils.log.file_task_handler.FileTaskHandler',
-    'formatter': 'airflow.task',
-    'base_log_folder': '/opt/airflow/logs/tasks',
-    'filename_template': '{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log',
-}
 
-LOGGING_CONFIG['loggers']['airflow.task'] = {
-    'handlers': ['task', 'console'],
-    'level': 'INFO',
-    'propagate': False,
-}
