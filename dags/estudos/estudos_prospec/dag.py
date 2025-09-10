@@ -387,7 +387,7 @@ def prospec_update():
             f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"'
             for k, v in (params.items() if params else [])
         )
-        command = CMD_UPDATE + conteudo
+        command = CMD_UPDATE + f" {conteudo}"
         return {"command": command, "produto": f"REVISAO-{produto}"}
 
     # chamando a task TaskFlow: retorna XComArg
