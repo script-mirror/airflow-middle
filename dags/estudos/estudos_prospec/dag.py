@@ -244,15 +244,31 @@ prospec_gfs()
     default_args=default_args,
 )
 def prospec_atualizacao():
+    @task(multiple_outputs=True)
+    def build_command():
+        ctx = get_current_context()
+        params = ctx.get("params") or (ctx.get("dag_run").conf if ctx.get("dag_run") else {})
+        produto = params.get("produto", "")
+        conteudo = ' '.join(
+            f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"'
+            for k, v in (params.items() if params else [])
+        )
+        command= CMD_BASE + "prevs UPDATE rodada Preliminar"
+        command = command + f" {conteudo}"
+        return {"command": command}
+
+    # chamando a task TaskFlow: retorna XComArg
+    cmd_xcom = build_command()
+    
     run_prospec_on_host = SSHOperator(
         task_id='run_prospec_atualizacao',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE} prevs UPDATE rodada Preliminar",
+        command=cmd_xcom["command"],   # XComArg apontando para a chave 'command'
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
     )
-
+    cmd_xcom >> run_prospec_on_host
 prospec_atualizacao()
 
 # DAG 12: 1.12-PROSPEC_CONSISTIDO
