@@ -369,9 +369,6 @@ newave_ons_to_ccee()
 def run_prospec_update(**kwargs):
     params = kwargs.get('params', {})
     produto = params.get('produto')
-    if not produto:
-        raise AirflowException("Parâmetro 'produto' é obrigatório.")
-
     command = f"{CMD_UPDATE} 'REVISAO-{produto}"
 
     return command
