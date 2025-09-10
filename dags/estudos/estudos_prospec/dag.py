@@ -253,7 +253,7 @@ def prospec_atualizacao():
             f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"'
             for k, v in (params.items() if params else [])
         )
-        command= CMD_BASE + "prevs UPDATE rodada Preliminar"
+        command= CMD_BASE + " prevs UPDATE rodada Preliminar"
         command = command + f" {conteudo}"
         return {"command": command}
 
