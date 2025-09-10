@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag
+from airflow.exceptions import AirflowException
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from middle.utils import Constants
 
 consts = Constants()
@@ -365,8 +367,18 @@ def newave_ons_to_ccee():
 newave_ons_to_ccee()
 
 # DAG 17: 1.18-PROSPEC_UPDATE
+def run_prospec_update(**kwargs):
+    params = kwargs.get('params', {})
+    produto = params.get('produto')
+    if not produto:
+        raise AirflowException("Parâmetro 'produto' é obrigatório.")
+
+    command = f"{CMD_UPDATE} 'REVISAO-{produto}"
+
+    return command
+
 @dag(
-    dag_id='1.18-PROSPEC_UPDATE',
+    dag_id='1.19-PROSPEC_UPDATE',
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
@@ -374,11 +386,12 @@ newave_ons_to_ccee()
     tags=['Prospec'],
     default_args=default_args,
 )
+
 def prospec_update():
     run_prospec_on_host = SSHOperator(
         task_id='run_prospec_update',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_UPDATE}",
+        command=run_prospec_update(),
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
