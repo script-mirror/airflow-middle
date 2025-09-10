@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag
-from airflow.exceptions import AirflowException
+from airflow.utils.trigger_rule import TriggerRule
+from airflow.operators.python import get_current_context
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from middle.utils import Constants
@@ -366,40 +367,51 @@ def newave_ons_to_ccee():
 newave_ons_to_ccee()
 
 # DAG 17: 1.18-PROSPEC_UPDATE
-def run_prospec_update(**kwargs):
-    params = kwargs.get('params', {})
-    produto = params.get('produto')
-    command = f"{CMD_UPDATE} 'REVISAO-{produto}"
-
-    return command
-
 @dag(
-    dag_id='1.18-PROSPEC_UPDATE',
-    start_date=datetime(2025, 1, 23),
+    dag_id="1.18-PROSPEC_UPDATE",
+    default_args=default_args,
+    start_date=datetime(2024, 4, 28),
     schedule=None,
     catchup=False,
+    tags=["Prospec"],
     max_active_runs=1,
-    tags=['Prospec'],
-    default_args=default_args,
 )
-
 def prospec_update():
+
+    @task(multiple_outputs=True)
+    def build_command():
+        ctx = get_current_context()
+        params = ctx.get("params") or (ctx.get("dag_run").conf if ctx.get("dag_run") else {})
+        produto = params.get("produto", "")
+        conteudo = ' '.join(
+            f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"'
+            for k, v in (params.items() if params else [])
+        )
+        command = CMD_UPDATE + conteudo
+        return {"command": command, "produto": f"REVISAO-{produto}"}
+
+    # chamando a task TaskFlow: retorna XComArg
+    cmd_xcom = build_command()
+
+    # SSHOperator.command é um campo templated -> aceitaria o XComArg
     run_prospec_on_host = SSHOperator(
-        task_id='run_prospec_update',
-        ssh_conn_id='ssh_master',
-        command=run_prospec_update(),
-        trigger_rule="none_failed_min_one_success",
-        conn_timeout=None,
-        cmd_timeout=None,
+        task_id="run",
+        ssh_conn_id="ssh_master",
+        command=cmd_xcom["command"],   # XComArg apontando para a chave 'command'
+        conn_timeout=36000,
+        cmd_timeout=28800,
+        execution_timeout=timedelta(hours=20),
+        get_pty=True,
+        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
     )
 
     trigger_atualizacao = TriggerDagRunOperator(
-        task_id='trigger_atualizacao',
-        trigger_dag_id='1.11-PROSPEC_ATUALIZACAO',
-        conf={"nome_estudo": "REVISAO"},
+        task_id="trigger_atualizacao",
+        trigger_dag_id="1.11-PROSPEC_ATUALIZACAO",
+        conf={"nome_estudo": cmd_xcom["produto"]},  # passa XComArg['produto']
         wait_for_completion=False,
     )
 
-    run_prospec_on_host >> trigger_atualizacao
+    cmd_xcom >> run_prospec_on_host >> trigger_atualizacao
 
 prospec_update()
