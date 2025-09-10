@@ -79,6 +79,7 @@ def prospec_pconjunto_prel():
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
+        do_xcom_push=False,
     )
 
 prospec_pconjunto_prel()
