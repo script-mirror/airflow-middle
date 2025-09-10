@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.operators.python import get_current_context
 from airflow.providers.ssh.operators.ssh import SSHOperator
