@@ -100,6 +100,7 @@ def prospec_1rv():
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
+        do_xcom_push=False,
     )
 
 prospec_1rv()
@@ -121,6 +122,7 @@ def prospec_ec_ext():
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
+        
     )
 
 prospec_ec_ext()
