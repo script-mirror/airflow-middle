@@ -378,7 +378,7 @@ def run_prospec_update(**kwargs):
     return command
 
 @dag(
-    dag_id='1.19-PROSPEC_UPDATE',
+    dag_id='1.18-PROSPEC_UPDATE',
     start_date=datetime(2025, 1, 23),
     schedule=None,
     catchup=False,
