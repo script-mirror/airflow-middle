@@ -3,7 +3,6 @@ from airflow.decorators import dag
 from airflow.exceptions import AirflowException
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from middle.utils import Constants
 
 consts = Constants()
