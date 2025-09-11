@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from estudos.cvu.tasks import (
     check_atualizacao,
     export_data_to_db,
+    trigger_prospec_updater,
     end_task,
 )
 
@@ -24,13 +25,7 @@ from estudos.cvu.tasks import (
 def dag_check_cvu():
     t1 = check_atualizacao()
     t2 = export_data_to_db()
-    t3 = TriggerDagRunOperator(
-        task_id="trigger_prospec_updater",
-        trigger_dag_id="PROSPEC_UPDATER",
-        conf={"external_params": "{{ dag_run.conf }}"},
-        wait_for_completion=False,
-        trigger_rule="none_failed_min_one_success",
-    )
+    t3 = trigger_prospec_updater()
     t4 = end_task()
 
     t1 >> t2 >> t3 >> t4
