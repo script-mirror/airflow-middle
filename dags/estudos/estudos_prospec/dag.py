@@ -338,10 +338,19 @@ prospec_pconjunto_prel_precipitacao()
     default_args=default_args,
 )
 def prospec_rodar_sensibilidade():
+    @task(multiple_outputs=True)
+    def build_command():
+        ctx = get_current_context()
+        params = ctx.get("params", {}) 
+        command = CMD_BASE_SENS + ' "'  + str(params) + '"'
+        return {"command": command}
+
+    cmd_xcom = build_command()
+    
     run_prospec_on_host = SSHOperator(
         task_id='run_sensibilidade',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE_SENS}",
+        command=cmd_xcom["command"],
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
