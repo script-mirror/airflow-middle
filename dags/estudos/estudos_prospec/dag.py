@@ -9,11 +9,11 @@ from middle.utils import Constants
 consts = Constants()
 
 # Base commands (stripped of SSH prefix for SSHOperator)
-CMD_BASE = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py"
+CMD_BASE =      f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/main_roda_estudos.py"
 CMD_BASE_SENS = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/gerar_sensibilidade.py"
-CMD_BASE_NW = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py"
-CMD_BASE_DC = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py"
-CMD_UPDATE = f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py"
+CMD_BASE_NW =   f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_nw_ons_to_ccee.py"
+CMD_BASE_DC =   f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/estudos_prospec/run_dc_ons_to_ccee.py"
+CMD_UPDATE =    f"{consts.ATIVAR_ENV} python -u {consts.PATH_PROJETOS}/estudos-middle/update_estudos/update_prospec.py"
 
 default_args = {
     'owner': 'airflow',
@@ -28,11 +28,26 @@ default_args = {
     tags=['Prospec'],
     default_args=default_args,
 )
+
 def enviar_email_estudos():
+    @task(multiple_outputs=True)
+    def build_command():
+        ctx = get_current_context()
+        params = ctx.get("params") or (ctx.get("dag_run").conf if ctx.get("dag_run") else {})
+        conteudo = ' '.join(
+            f'"{k}" \'{v}\'' if k == "list_email" else f'"{k}" "{v}"'
+            for k, v in (params.items() if params else [])
+        )
+        command = CMD_BASE + f" {conteudo}"
+        return {"command": command}
+
+    # chamando a task TaskFlow: retorna XComArg
+    cmd_xcom = build_command()
+        
     run_prospec_on_host = SSHOperator(
         task_id='run_email_estudos',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE}",
+        command=cmd_xcom["command"],   
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
@@ -414,7 +429,7 @@ def prospec_update():
 
     # SSHOperator.command é um campo templated -> aceitaria o XComArg
     run_prospec_on_host = SSHOperator(
-        task_id="run",
+        task_id="run_update",
         ssh_conn_id="ssh_master",
         command=cmd_xcom["command"],   # XComArg apontando para a chave 'command'
         conn_timeout=36000,
