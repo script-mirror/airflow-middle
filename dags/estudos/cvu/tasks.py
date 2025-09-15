@@ -1,14 +1,8 @@
 import requests
 import datetime
-import glob
-import os
-import re
-from typing import List
 from airflow.decorators import task
-from middle.utils import Constants, get_auth_header
-
-from middle.utils import setup_logger
 from airflow.operators.python import get_current_context
+from middle.utils import Constants, get_auth_header, setup_logger
 from middle.airflow import trigger_dag
 
 logger = setup_logger()
@@ -129,13 +123,13 @@ def export_data_to_db():
 @task
 def trigger_prospec_updater():
     context = get_current_context()
-    dag_run = context["dag_run"]
-    data_produto = datetime.datetime.strptime(dag_run.conf.get('dt_atualizacao'), "%Y-%m-%d").strftime("%d/%m/%Y")
-    for cvu in dag_run.conf['cvus_to_search']:
+    ti = context["ti"]
+    data_produto = datetime.datetime.strptime(ti.xcom_pull(task_ids='check_atualizacao', key='dt_atualizacao'), "%Y-%m-%d").strftime("%d/%m/%Y")
+    cvus_to_search = ti.xcom_pull(task_ids='check_atualizacao', key='cvus_to_search')
+    for cvu in cvus_to_search:
         trigger_dag("1.18-PROSPEC_UPDATE", conf={"tipo_cvu": cvu, "produto": "CVU", "dt_produto": data_produto})
     
 
 @task
 def end_task():
     pass
-
