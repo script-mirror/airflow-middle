@@ -13,8 +13,7 @@ PRODUTOS_SINTEGRE = [
     "Arquivos de Previsão de Carga para o DESSEM - PrevCargaDESSEM",
     "Decks de entrada do PrevCargaDESSEM",
     "Decks de entrada e saída - Modelo DESSEM",
-    "Precipitação por Satélite.",
-    "Histórico de Precipitação por Satélite",
+    "Histórico de Precipitação por Satélite - PMO",
     "Resultados finais consistidos (vazões diárias - PDP)",
     "Relatório dos resultados finais consistidos da previsão diária (PDP)",
     "DADVAZ – Arquivo de Previsão de Vazões Diárias (PDP)",
@@ -31,5 +30,5 @@ PRODUTOS_SINTEGRE = [
     "Deck NEWAVE Preliminar",
     "Previsões de carga mensal e por patamar - NEWAVE",
     "DECK NEWAVE DEFINITIVO",
-    "Decks de entrada e saída do processo sombra - Modelo GEVAZP",
+    "Decks de entrada e saída do processo sombra - Modelo GEVAZP"
 ]
