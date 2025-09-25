@@ -39,7 +39,7 @@ def dag_webhook():
             ),
             docker_url="tcp://docker-proxy:2375",
             image="task-webhook-ons",
-            command="'{{ dag_run.conf }}'",
+            command='"{{ dag_run.conf }}"',
             auto_remove="force",
             xcom_all=False,
             on_failure_callback = enviar_whatsapp_erro,
