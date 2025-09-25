@@ -13,7 +13,6 @@ PRODUTOS_SINTEGRE = [
     "Arquivos de Previsão de Carga para o DESSEM - PrevCargaDESSEM",
     "Decks de entrada do PrevCargaDESSEM",
     "Decks de entrada e saída - Modelo DESSEM",
-    "Precipitação por Satélite - PMO",
     "Histórico de Precipitação por Satélite - PMO",
     "Resultados finais consistidos (vazões diárias - PDP)",
     "Relatório dos resultados finais consistidos da previsão diária (PDP)",
