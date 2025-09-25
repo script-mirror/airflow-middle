@@ -49,7 +49,7 @@ def dag_ons_dados_abertos():
             auto_remove="force",
             xcom_all=False,
             on_failure_callback = enviar_whatsapp_erro,
-            on_success_callback = enviar_whatsapp_sucesso,
+            # on_success_callback = enviar_whatsapp_sucesso,
         )
 
         tasks.append(t)

@@ -6,6 +6,7 @@ from middle.utils import setup_logger
 from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
 from chuva_vazao.pconjunto.tasks import (
     start_task, end_task,
+    check_ecmwf, check_gefs, check_eta,
 )
 from middle.utils import Constants
 
@@ -27,6 +28,9 @@ default_args = {
 def dag_pconjunto():
     start = start_task()
     end = end_task()
+    ecmwf = check_ecmwf(data_execucao="{{ logical_date.to_date_string() }}")
+    gefs = check_gefs(data_execucao="{{ logical_date.to_date_string() }}")
+    eta = check_eta(data_execucao="{{ logical_date.to_date_string() }}")
 
     t = DockerOperator(
         task_id='run_pconjunto',
@@ -41,7 +45,7 @@ def dag_pconjunto():
         on_success_callback = enviar_whatsapp_sucesso,
     )
     
-    start >> t >> end       
+    start >> [ecmwf, gefs, eta] >> t >> end       
         
         
 dag_pconjunto = dag_pconjunto()
