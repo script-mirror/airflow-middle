@@ -1,8 +1,8 @@
 import datetime
 from airflow.decorators import dag
-from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.python import BranchPythonOperator
-from middle.utils import sanitize_string
+from airflow.utils.log.logging_mixin import LoggingMixin
+from middle.utils import sanitize_string, setup_logger
 from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
 from webhook.tasks import (
     start_task, end_task,
@@ -12,7 +12,9 @@ from webhook.constants import PRODUTOS_SINTEGRE
 from middle.utils import Constants
 
 constants = Constants()
+airflow_logger = LoggingMixin().log
 
+logger = setup_logger(external_logger=airflow_logger)
 default_args = {
     'owner': 'airflow',
     'start_date': datetime.datetime(2025, 8, 19),

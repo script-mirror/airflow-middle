@@ -1,12 +1,18 @@
-FROM apache/airflow:3.0.3
+FROM apache/airflow:3.0.6
 COPY requirements.txt .
 
 USER root
 
-RUN apt-get update && apt-get install -y git locales
+RUN apt-get update && apt-get install -y git locales poppler-utils
 
 RUN sed -i -e 's/# pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen
+    
+ENV TZ=America/Sao_Paulo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN groupadd -g 999 docker || true
+RUN usermod -aG docker airflow
 
 USER airflow
 
