@@ -1,12 +1,11 @@
 import datetime
 from airflow.decorators import dag
-from airflow.operators.python import BranchPythonOperator
+from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
 from middle.utils import sanitize_string, setup_logger
 from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
 from webhook.tasks import (
     start_task, end_task,
-    executar_task,
 )
 from webhook.constants import PRODUTOS_SINTEGRE
 from middle.utils import Constants
@@ -33,15 +32,18 @@ def dag_webhook():
     end = end_task()
     
     for product in PRODUTOS_SINTEGRE:
-        task_produto = BranchPythonOperator(
+        task_produto = DockerOperator(
             task_id=sanitize_string(
                 product,
                 space_char='_',
             ),
-            trigger_rule="none_failed_min_one_success",
-            python_callable = executar_task,
-            on_failure_callback=enviar_whatsapp_erro,
-            on_success_callback=enviar_whatsapp_sucesso,
+            docker_url="tcp://docker-proxy:2375",
+            image="task-webhook-ons",
+            command='"{{ dag_run.conf }}"',
+            auto_remove="force",
+            xcom_all=False,
+            on_failure_callback = enviar_whatsapp_erro,
+            on_success_callback = enviar_whatsapp_sucesso,
         )
     
         start >> task_produto

@@ -1,13 +1,9 @@
 import requests
 import datetime
-import glob
-import os
-import re
-from typing import List
 from airflow.decorators import task
-from middle.utils import Constants, get_auth_header
-
-from middle.utils import setup_logger
+from airflow.operators.python import get_current_context
+from middle.utils import Constants, get_auth_header, setup_logger
+from middle.airflow import trigger_dag
 
 logger = setup_logger()
 constants = Constants()
@@ -74,7 +70,11 @@ def _mark_cvu_as_processed(ids_cvu: list):
     return res.json()
 
 @task.branch
-def check_atualizacao(ti=None, dag_run=None):
+def check_atualizacao():
+    context = get_current_context()
+    ti = context["ti"]
+    dag_run = context["dag_run"]
+
     cvus_to_search = dag_run.conf.get('cvus_to_search', [])
     ids_to_modify = dag_run.conf.get('ids_to_modify', [])
     ultima_data_atualizacao = datetime.datetime.min
@@ -110,7 +110,10 @@ def check_atualizacao(ti=None, dag_run=None):
     return "end_task"
 
 @task
-def export_data_to_db(ti=None):
+def export_data_to_db():
+    context = get_current_context()
+    ti = context["ti"]
+
     cvus_to_search = ti.xcom_pull(task_ids='check_atualizacao', key='cvus_to_search')
     ids_cvu = ti.xcom_pull(task_ids='check_atualizacao', key='ids_cvu_nao_processados')
     for tipo_cvu in cvus_to_search:
@@ -118,6 +121,15 @@ def export_data_to_db(ti=None):
     _mark_cvu_as_processed(ids_cvu)
 
 @task
+def trigger_prospec_updater():
+    context = get_current_context()
+    ti = context["ti"]
+    data_produto = datetime.datetime.strptime(ti.xcom_pull(task_ids='check_atualizacao', key='dt_atualizacao'), "%Y-%m-%d").strftime("%d/%m/%Y")
+    cvus_to_search = ti.xcom_pull(task_ids='check_atualizacao', key='cvus_to_search')
+    for cvu in cvus_to_search:
+        trigger_dag("1.18-PROSPEC_UPDATE", conf={"tipo_cvu": cvu, "produto": "CVU", "dt_produto": data_produto})
+    
+
+@task
 def end_task():
     pass
-

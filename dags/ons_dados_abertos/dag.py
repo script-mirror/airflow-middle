@@ -46,11 +46,12 @@ def dag_ons_dados_abertos():
                 "git_username": os.getenv("git_username"),
                 "git_token": os.getenv("git_token"),
             },
-            auto_remove="force",   # literal válido
-            xcom_all=False,        # comportamento padrão
+            auto_remove="force",
+            xcom_all=False,
+            on_failure_callback = enviar_whatsapp_erro,
+            # on_success_callback = enviar_whatsapp_sucesso,
         )
-        t.on_failure_callback = enviar_whatsapp_erro
-        t.on_success_callback = enviar_whatsapp_sucesso
+
         tasks.append(t)
     start >> tasks >> end       
         
