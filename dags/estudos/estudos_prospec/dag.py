@@ -220,7 +220,7 @@ def prospec_grupos_ons():
     run_decomp_ons_grupos = SSHOperator(
         task_id='run_decomp_ons_grupos',
         ssh_conn_id='ssh_master',
-        command=f"{CMD_BASE} prevs ONS-GRUPOS rodada Preliminar",
+        command=f"{CMD_BASE} prevs ONS-GRUPOS rodada Definitivo",
         trigger_rule="none_failed_min_one_success",
         conn_timeout=None,
         cmd_timeout=None,
