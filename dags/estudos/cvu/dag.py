@@ -1,41 +1,52 @@
-from airflow.decorators import dag
 import datetime
-from middle.utils import Constants, setup_logger
-
-from estudos.cvu.tasks import (
-    check_atualizacao,
-    export_data_to_db,
-    trigger_prospec_updater,
-    end_task,
+from airflow.decorators import dag
+from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.utils.log.logging_mixin import LoggingMixin
+from middle.utils import sanitize_string, setup_logger
+from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
+from webhook.tasks import (
+    start_task, end_task,
 )
+from middle.utils import Constants
 
-logger = setup_logger()
 constants = Constants()
+airflow_logger = LoggingMixin().log
+
+logger = setup_logger(external_logger=airflow_logger)
+default_args = {
+    'owner': 'airflow',
+    'start_date': datetime.datetime(2025, 8, 19),
+}
 
 
 @dag(
-    dag_id="ccee-cvu-whatcher",
-    description="Consulta a api da ccee",
-    start_date=datetime.datetime(2025, 8, 1),
-    schedule="*/5 7-23 * * *",
+    default_args=default_args,
+    dag_id='ccee-dados-abertos', 
+    start_date=datetime.datetime(2025, 10, 9), 
+    schedule="0/5 * * * *",
     catchup=False,
-    default_args={
-        "retries": 3,
-        "retry_delay": datetime.timedelta(minutes=1),
-    },
-    tags=["cvu", "ccee"],
-    render_template_as_native_obj=True,
+    tags=['webhook', 'ons'],
 )
 
 
 def dag_check_cvu():
-
-    t1 = check_atualizacao()
-    t2 = export_data_to_db()
-    t3 = trigger_prospec_updater()
-    t4 = end_task()
-
-    t1 >> t2 >> t3 >> t4
-    t1 >> t4
+    start = start_task()
+    end = end_task()
+    
+    task_produto = DockerOperator(
+        task_id="cvu",
+        docker_url="tcp://docker-proxy:2375",
+        image="ccee-dados-abertos",
+        environment={
+            "nome": "{{ task.task_id }}",
+        },
+        auto_remove="force",
+        xcom_all=False,
+        on_failure_callback = enviar_whatsapp_erro,
+        on_success_callback = enviar_whatsapp_sucesso,
+        )
+    
+    start >> task_produto
+    task_produto >> end
 
 dag_check_cvu = dag_check_cvu()
