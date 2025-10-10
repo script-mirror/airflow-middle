@@ -1,5 +1,5 @@
 import datetime
-from airflow.decorators import dag
+from airflow.sdk import dag
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
 from middle.utils import setup_logger

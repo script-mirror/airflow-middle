@@ -1,4 +1,4 @@
-from airflow.decorators import task
+from airflow.sdk import task
 from docker.types import Mount
 import os
 from middle.utils import (
