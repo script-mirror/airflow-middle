@@ -2,9 +2,9 @@ import datetime
 from airflow.decorators import dag
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
-from middle.utils import sanitize_string, setup_logger
+from middle.utils import setup_logger
 from middle.airflow import enviar_whatsapp_erro, enviar_whatsapp_sucesso
-from webhook.tasks import (
+from estudos.cvu.tasks import (
     start_task, end_task,
 )
 from middle.utils import Constants
@@ -25,7 +25,7 @@ default_args = {
     start_date=datetime.datetime(2025, 10, 9), 
     schedule="0/5 * * * *",
     catchup=False,
-    tags=['webhook', 'ons'],
+    tags=['ccee', 'cvu'],
 )
 
 
