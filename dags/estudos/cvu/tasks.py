@@ -10,10 +10,7 @@ constants = Constants()
 
 @task.branch
 def start_task(**kwargs):
-    params = kwargs.get('dag_run').conf
-    product_name = params.get('nome')
-    task_id = sanitize_string(product_name, space_char='_',)
-    return [task_id]
+    return ["cvu"]
 
 
 @task
