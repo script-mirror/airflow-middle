@@ -43,7 +43,7 @@ def dag_check_cvu():
         auto_remove="force",
         xcom_all=False,
         on_failure_callback = enviar_whatsapp_erro,
-        on_success_callback = enviar_whatsapp_sucesso,
+        # on_success_callback = enviar_whatsapp_sucesso,
         )
     
     start >> task_produto
