@@ -28,7 +28,7 @@ def check_ecmwf(data_execucao: str, **kwargs):
     if not items:
         raise ValueError(f'ECMWF dia {data_execucao} nao encontrado')
     else:
-        logger.info(f'GEFS dia {data_execucao} ok')
+        logger.info(f'ECMWF dia {data_execucao} ok')
     return None
 
 @task
@@ -54,5 +54,5 @@ def check_eta(data_execucao: str, **kwargs):
     if not items:
         raise ValueError(f'ETA dia {data_execucao} nao encontrado')
     else:
-        logger.info(f'GEFS dia {data_execucao} ok')
+        logger.info(f'ETA dia {data_execucao} ok')
     return None
