@@ -2,7 +2,6 @@ PRODUTOS_SINTEGRE = [
     "Relatório de Acompanhamento Hidrológico",
     "Modelo GEFS",
     "Resultados preliminares não consistidos (vazões semanais - PMO)",
-    "Relatório dos resultados finais consistidos da previsão diária (PDP)",
     "Níveis de Partida para o DESSEM",
     "DADVAZ – Arquivo de Previsão de Vazões Diárias (PDP)",
     "Deck e Resultados DECOMP - Valor Esperado",
