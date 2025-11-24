@@ -42,7 +42,6 @@ def dag_webhook():
             command='"{{ dag_run.conf }}"',
             auto_remove='force',              
             mount_tmp_dir=False,              # NÃO monta a pasta temporária do host que some → erro de bind sumiu!
-            tmpfs={"/tmp": "rw,size=100m"},   # cria um /tmp limpo e seguro dentro do container
             xcom_all=False,
             on_failure_callback = enviar_whatsapp_erro,
             on_success_callback = enviar_whatsapp_sucesso,
