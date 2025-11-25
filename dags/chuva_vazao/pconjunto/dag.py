@@ -36,6 +36,7 @@ def dag_pconjunto():
         task_id='run_pconjunto',
         docker_url="tcp://docker-proxy:2375",
         image="pconjunto:latest",
+        force_pull=False,
         environment={
             "data_rodada": "{{ logical_date.to_date_string() }}",
         },
