@@ -40,7 +40,8 @@ def dag_webhook():
             docker_url="tcp://docker-proxy:2375",
             image="task-webhook-ons",
             command='"{{ dag_run.conf }}"',
-            auto_remove="force",
+            auto_remove='force',              
+            mount_tmp_dir=False,              # NÃO monta a pasta temporária do host que some → erro de bind sumiu!
             xcom_all=False,
             on_failure_callback = enviar_whatsapp_erro,
             on_success_callback = enviar_whatsapp_sucesso,
