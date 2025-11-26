@@ -41,6 +41,7 @@ def dag_pconjunto():
             "data_rodada": "{{ logical_date.to_date_string() }}",
         },
         auto_remove="force",
+        mount_tmp_dir=False,
         xcom_all=False,
         on_failure_callback = enviar_whatsapp_erro,
         on_success_callback = enviar_whatsapp_sucesso,
